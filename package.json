@@ -44,15 +44,28 @@
     },
     "files": [
       "dist/**/*",
-      "package.json"
+      "package.json",
+      "!**/node_modules/**/MacKeyServer",
+      "!**/node_modules/**/MacKeyServer.dSYM",
+      "!**/node_modules/**/*.dylib"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/icon.png",
+        "to": "icon.png"
+      }
     ],
     "win": {
-      "target": "nsis",
-      "icon": "build/icon.ico"
+      "target": ["nsis", "portable"],
+      "icon": "build/icon.png",
+      "signAndEditExecutable": false
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
+    },
+    "portable": {
+      "artifactName": "Visper-Portable.exe"
     }
   }
 }

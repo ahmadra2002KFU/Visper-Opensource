@@ -1,9 +1,18 @@
-import { BrowserWindow, screen } from 'electron';
+import { BrowserWindow, screen, app, nativeImage } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Get icon path - works in both dev and production
+function getIconPath(): string {
+  const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+  if (isDev) {
+    return path.join(app.getAppPath(), 'resources', 'icon.png');
+  }
+  return path.join(process.resourcesPath, 'icon.png');
+}
 
 export class WindowService {
   mainWindow: BrowserWindow | null = null;
@@ -11,6 +20,9 @@ export class WindowService {
 
   async createMainWindow(): Promise<BrowserWindow> {
     const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
+
+    // Load icon for taskbar
+    const iconPath = getIconPath();
 
     this.mainWindow = new BrowserWindow({
       width: 280,
@@ -26,6 +38,7 @@ export class WindowService {
       resizable: true,
       skipTaskbar: false,
       show: false,
+      icon: iconPath,
       webPreferences: {
         preload: path.join(__dirname, '..', 'preload.js'),
         contextIsolation: true,

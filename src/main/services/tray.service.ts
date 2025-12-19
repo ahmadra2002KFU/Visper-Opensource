@@ -1,20 +1,76 @@
 import { Tray, Menu, nativeImage, app } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { WindowService } from './window.service.js';
+
+// Get icon path - works in both dev and production
+function getIconPath(): string {
+  const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+  if (isDev) {
+    return path.join(app.getAppPath(), 'resources', 'icon.png');
+  }
+  return path.join(process.resourcesPath, 'icon.png');
+}
 
 export class TrayService {
   private tray: Tray | null = null;
   private windowService: WindowService;
   private isRecording = false;
+  private normalIcon: Electron.NativeImage | null = null;
+  private recordingIcon: Electron.NativeImage | null = null;
 
   constructor(windowService: WindowService) {
     this.windowService = windowService;
+    this.loadIcons();
     this.createTray();
   }
 
+  private loadIcons() {
+    const iconPath = getIconPath();
+
+    try {
+      // Load the logo and resize for tray (16x16)
+      const originalIcon = nativeImage.createFromPath(iconPath);
+      this.normalIcon = originalIcon.resize({ width: 16, height: 16 });
+
+      // For recording, we'll use a red-tinted version or fallback to SVG indicator
+      // Since nativeImage doesn't easily support color modification,
+      // we'll create a simple recording indicator
+      this.recordingIcon = this.createRecordingIndicator();
+    } catch (error) {
+      console.error('Failed to load tray icon:', error);
+      // Fallback to simple icons
+      this.normalIcon = this.createFallbackIcon(false);
+      this.recordingIcon = this.createFallbackIcon(true);
+    }
+  }
+
+  private createRecordingIndicator(): Electron.NativeImage {
+    // Create a recording indicator (red dot with white center)
+    const size = 16;
+    const svg = `
+      <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 1}" fill="#ef4444"/>
+        <circle cx="${size / 2}" cy="${size / 2}" r="${size / 4}" fill="white"/>
+      </svg>
+    `;
+    return nativeImage.createFromBuffer(Buffer.from(svg), { width: size, height: size });
+  }
+
+  private createFallbackIcon(recording: boolean): Electron.NativeImage {
+    const size = 16;
+    const color = recording ? '#ef4444' : '#f97316'; // Red or Orange (Visper brand)
+    const svg = `
+      <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 1}" fill="${color}"/>
+        <circle cx="${size / 2}" cy="${size / 2}" r="${size / 4}" fill="white"/>
+      </svg>
+    `;
+    return nativeImage.createFromBuffer(Buffer.from(svg), { width: size, height: size });
+  }
+
   private createTray() {
-    // Create a simple tray icon (16x16 blue circle)
-    const icon = this.createIcon(false);
+    const icon = this.normalIcon || this.createFallbackIcon(false);
     this.tray = new Tray(icon);
 
     this.tray.setToolTip('Visper - Press Win+J to dictate');
@@ -29,26 +85,6 @@ export class TrayService {
     this.tray.on('click', () => {
       this.windowService.toggleVisibility();
     });
-  }
-
-  private createIcon(recording: boolean): Electron.NativeImage {
-    // Create a simple icon programmatically
-    // 16x16 icon - blue for idle, red for recording
-    const size = 16;
-    const color = recording ? '#ef4444' : '#6366f1'; // Red or Indigo
-
-    // Create SVG string
-    const svg = `
-      <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 1}" fill="${color}"/>
-        <circle cx="${size / 2}" cy="${size / 2}" r="${size / 4}" fill="white"/>
-      </svg>
-    `;
-
-    return nativeImage.createFromBuffer(
-      Buffer.from(svg),
-      { width: size, height: size }
-    );
   }
 
   private updateContextMenu() {
@@ -93,7 +129,9 @@ export class TrayService {
 
   setRecording(isRecording: boolean) {
     this.isRecording = isRecording;
-    const icon = this.createIcon(isRecording);
+    const icon = isRecording
+      ? (this.recordingIcon || this.createFallbackIcon(true))
+      : (this.normalIcon || this.createFallbackIcon(false));
     this.tray?.setImage(icon);
     this.tray?.setToolTip(
       isRecording ? 'Visper - Recording...' : 'Visper - Press Win+J to dictate'

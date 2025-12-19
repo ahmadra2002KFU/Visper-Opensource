@@ -10,10 +10,7 @@
 
 <div class="title-bar drag-region">
   <div class="logo">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-      <path d="M12 8v4l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-    </svg>
+    <img src="/logo.png" alt="Visper" class="logo-img" />
     <span class="app-name">Visper</span>
   </div>
 
@@ -45,8 +42,14 @@
   .logo {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
     color: var(--color-text-primary);
+  }
+
+  .logo-img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
   }
 
   .app-name {
