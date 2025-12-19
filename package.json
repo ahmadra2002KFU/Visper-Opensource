@@ -1,0 +1,58 @@
+{
+  "name": "visper",
+  "version": "1.0.0",
+  "description": "Lightweight dictation app powered by Gemini Flash API",
+  "main": "dist/main/main.js",
+  "type": "module",
+  "author": "Ahmad",
+  "license": "MIT",
+  "scripts": {
+    "dev": "npm run build:main && concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
+    "dev:vite": "vite",
+    "dev:electron": "wait-on tcp:5173 && electron .",
+    "build:main": "tsc -p tsconfig.node.json && npm run build:preload",
+    "build:preload": "esbuild src/main/preload.ts --bundle --platform=node --outfile=dist/main/preload.js --external:electron --format=cjs",
+    "build": "npm run build:main && vite build",
+    "build:electron": "npm run build && electron-builder",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "better-sqlite3": "^11.0.0",
+    "dotenv": "^17.2.3",
+    "electron-store": "^10.0.0",
+    "node-global-key-listener": "^0.3.0"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^4.0.0",
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/node": "^20.10.0",
+    "concurrently": "^9.0.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "esbuild": "^0.27.2",
+    "svelte": "^5.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^5.4.0",
+    "wait-on": "^8.0.0"
+  },
+  "build": {
+    "appId": "com.visper.app",
+    "productName": "Visper",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
