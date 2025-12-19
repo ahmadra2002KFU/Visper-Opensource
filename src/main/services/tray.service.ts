@@ -5,11 +5,10 @@ import { WindowService } from './window.service.js';
 
 // Get icon path - works in both dev and production
 function getIconPath(): string {
-  const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
-  if (isDev) {
-    return path.join(app.getAppPath(), 'resources', 'icon.png');
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'icon.png');
   }
-  return path.join(process.resourcesPath, 'icon.png');
+  return path.join(app.getAppPath(), 'resources', 'icon.png');
 }
 
 export class TrayService {

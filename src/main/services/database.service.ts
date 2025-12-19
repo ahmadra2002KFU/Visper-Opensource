@@ -44,6 +44,9 @@ export class DatabaseService {
       CREATE INDEX IF NOT EXISTS idx_created_at ON transcriptions(created_at DESC);
     `);
 
+    // Migration: Add missing columns to existing databases
+    this.migrateSchema();
+
     // Create FTS table for search
     this.db.exec(`
       CREATE VIRTUAL TABLE IF NOT EXISTS transcriptions_fts USING fts5(
@@ -149,5 +152,22 @@ export class DatabaseService {
 
   close() {
     this.db.close();
+  }
+
+  private migrateSchema() {
+    // Get existing columns
+    const columns = this.db.prepare("PRAGMA table_info(transcriptions)").all() as { name: string }[];
+    const columnNames = columns.map(c => c.name);
+
+    // Add missing columns
+    if (!columnNames.includes('duration_seconds')) {
+      this.db.exec('ALTER TABLE transcriptions ADD COLUMN duration_seconds REAL');
+    }
+    if (!columnNames.includes('tokens_used')) {
+      this.db.exec('ALTER TABLE transcriptions ADD COLUMN tokens_used INTEGER');
+    }
+    if (!columnNames.includes('is_favorite')) {
+      this.db.exec('ALTER TABLE transcriptions ADD COLUMN is_favorite INTEGER DEFAULT 0');
+    }
   }
 }

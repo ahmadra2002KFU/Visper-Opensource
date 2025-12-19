@@ -7,16 +7,14 @@ const __dirname = path.dirname(__filename);
 
 // Get icon path - works in both dev and production
 function getIconPath(): string {
-  const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
-  if (isDev) {
-    return path.join(app.getAppPath(), 'resources', 'icon.png');
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'icon.png');
   }
-  return path.join(process.resourcesPath, 'icon.png');
+  return path.join(app.getAppPath(), 'resources', 'icon.png');
 }
 
 export class WindowService {
   mainWindow: BrowserWindow | null = null;
-  private isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
 
   async createMainWindow(): Promise<BrowserWindow> {
     const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
@@ -48,12 +46,14 @@ export class WindowService {
     });
 
     // Load the app
-    if (this.isDev) {
-      await this.mainWindow.loadURL('http://localhost:5173');
-      // Open DevTools in development
-      this.mainWindow.webContents.openDevTools({ mode: 'detach' });
+    if (app.isPackaged) {
+      // Production: load from asar
+      // __dirname is dist/main/services/, so we need ../../renderer/
+      await this.mainWindow.loadFile(path.join(__dirname, '../../renderer/index.html'));
     } else {
-      await this.mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+      // Development: load from Vite dev server
+      await this.mainWindow.loadURL('http://localhost:5173');
+      this.mainWindow.webContents.openDevTools({ mode: 'detach' });
     }
 
     // Show window when ready
