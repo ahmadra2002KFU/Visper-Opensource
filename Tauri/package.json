@@ -1,0 +1,27 @@
+{
+  "name": "visper",
+  "version": "1.0.0",
+  "description": "Lightweight dictation app powered by Gemini Flash API",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/plugin-clipboard-manager": "^2.0.0"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "@tauri-apps/cli": "^2.0.0",
+    "@types/node": "^20.10.0",
+    "png-to-ico": "^3.0.1",
+    "svelte": "^5.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^6.0.0"
+  }
+}
