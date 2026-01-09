@@ -2,7 +2,7 @@
 
 **Your voice, transcribed.**
 
-A fast, lightweight voice-to-text dictation app powered by Google's Gemini 2.0 Flash API. Built with Tauri 2.0, Rust, and Svelte 5.
+A fast, lightweight voice-to-text dictation app powered by Google's Gemini 3.0 Flash API. Built with Tauri 2.0, Rust, and Svelte 5.
 
 ![Visper Screenshot](docs/screenshot.png)
 
@@ -58,7 +58,7 @@ npm run tauri:build
 - **Frontend**: Svelte 5 with TypeScript
 - **Backend**: Rust with Tauri 2.0
 - **Database**: SQLite with FTS5 full-text search
-- **API**: Google Gemini 2.0 Flash
+- **API**: Google Gemini 3.0 Flash
 - **Audio**: Web Audio API with real-time waveform visualization
 
 ## Architecture
