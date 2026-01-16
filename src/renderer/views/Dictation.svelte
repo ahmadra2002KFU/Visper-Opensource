@@ -83,6 +83,15 @@
 
       // Start timer
       timerInterval = window.setInterval(() => {
+        // Only count if still recording
+        if (recordingState !== 'recording') {
+          if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+          }
+          return;
+        }
+
         seconds++;
 
         // Warning at 2 minutes
@@ -148,6 +157,11 @@
       if (soundEnabled) playSound('error');
     } finally {
       recordingState = 'idle';
+      // Ensure timer is fully stopped
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
     }
   }
 

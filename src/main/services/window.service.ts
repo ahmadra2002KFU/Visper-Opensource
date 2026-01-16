@@ -7,10 +7,12 @@ const __dirname = path.dirname(__filename);
 
 // Get icon path - works in both dev and production
 function getIconPath(): string {
+  // Use ICO for Windows, PNG for other platforms
+  const iconFile = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
   if (app.isPackaged) {
-    return path.join(process.resourcesPath, 'icon.png');
+    return path.join(process.resourcesPath, iconFile);
   }
-  return path.join(app.getAppPath(), 'resources', 'icon.png');
+  return path.join(app.getAppPath(), 'resources', iconFile);
 }
 
 export class WindowService {
