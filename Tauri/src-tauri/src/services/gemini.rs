@@ -12,7 +12,7 @@ const TRANSCRIPTION_PROMPT: &str = r#"You are a precise audio transcription assi
 
 Transcribe the audio now:"#;
 
-const GEMINI_MODEL: &str = "gemini-2.0-flash-exp";
+const GEMINI_MODEL: &str = "gemini-3.0-flash";
 
 #[derive(Debug, Serialize)]
 struct GeminiRequest {

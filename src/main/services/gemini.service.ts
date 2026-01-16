@@ -25,7 +25,7 @@ export class GeminiService {
     if (apiKey) {
       this.genAI = new GoogleGenerativeAI(apiKey);
       this.model = this.genAI.getGenerativeModel({
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-3-flash-preview',
         systemInstruction: TRANSCRIPTION_PROMPT
       });
     }
@@ -93,7 +93,7 @@ export class GeminiService {
       }
 
       const testAI = new GoogleGenerativeAI(keyToTest);
-      const testModel = testAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+      const testModel = testAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
 
       // Simple test - just list models or do a minimal request
       const result = await testModel.generateContent('Say "OK" if you can hear me.');
@@ -105,7 +105,7 @@ export class GeminiService {
         if (apiKey && apiKey !== await this.getActiveApiKey()) {
           this.genAI = testAI;
           this.model = this.genAI.getGenerativeModel({
-            model: 'gemini-2.0-flash-exp',
+            model: 'gemini-3-flash-preview',
             systemInstruction: TRANSCRIPTION_PROMPT
           });
         }
