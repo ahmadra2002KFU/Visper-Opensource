@@ -14,10 +14,8 @@ tauri = { version = "2", features = ["tray-icon", "image-png", "image-ico"] }
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-single-instance = "2"
-tauri-plugin-shell = "2"
-
 # Database
-rusqlite = { version = "0.32", features = ["bundled", "backup"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
 
 # HTTP Client for Gemini API
 reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
@@ -27,7 +25,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 # Async Runtime
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 
 # Base64 encoding for audio
 base64 = "0.22"
@@ -36,18 +34,10 @@ base64 = "0.22"
 keyring = "3"
 
 # Error handling
-thiserror = "2"
 anyhow = "1"
-
-# Logging
-tracing = "0.1"
-tracing-subscriber = "0.3"
 
 # Path handling
 dirs = "5"
-
-# Date/time
-chrono = { version = "0.4", features = ["serde"] }
 
 [profile.release]
 panic = "abort"

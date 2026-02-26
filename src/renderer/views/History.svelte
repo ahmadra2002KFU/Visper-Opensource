@@ -82,6 +82,7 @@
       await window.visperAPI.history.delete(id);
       items = items.filter(item => item.id !== id);
       total--;
+      hasMore = items.length < total;
       showToast('Deleted', 'info');
     } catch (error) {
       showToast('Failed to delete', 'error');

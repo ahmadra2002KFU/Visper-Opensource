@@ -23,7 +23,6 @@ pub struct AppState {
     pub db: Mutex<DatabaseService>,
     pub settings: Mutex<SettingsService>,
     pub gemini: AsyncMutex<GeminiService>,  // Async mutex for async operations
-    pub is_recording: Mutex<bool>,
 }
 
 // === RECORDING COMMANDS ===
@@ -32,9 +31,10 @@ pub struct AppState {
 async fn send_audio_data(
     state: tauri::State<'_, AppState>,
     audio_buffer: Vec<u8>,
+    mime_type: String,
 ) -> Result<TranscriptionResult, String> {
     let gemini = state.gemini.lock().await;
-    gemini.transcribe(&audio_buffer).await.map_err(|e| e.to_string())
+    gemini.transcribe(&audio_buffer, &mime_type).await.map_err(|e| e.to_string())
 }
 
 // === HISTORY COMMANDS ===
@@ -152,6 +152,30 @@ async fn test_api(
     gemini.test_connection(key.as_deref()).await.map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+async fn delete_api_key(
+    state: tauri::State<'_, AppState>,
+) -> Result<(), String> {
+    {
+        let settings = state.settings.lock().map_err(|e| e.to_string())?;
+        settings.clear_api_key().map_err(|e| e.to_string())?;
+    }
+    {
+        let mut gemini = state.gemini.lock().await;
+        gemini.update_api_key(None);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn toggle_favorite(
+    state: tauri::State<'_, AppState>,
+    id: i64,
+) -> Result<bool, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    db.toggle_favorite(id).map_err(|e| e.to_string())
+}
+
 // === APP COMMANDS ===
 
 #[tauri::command]
@@ -249,20 +273,6 @@ fn setup_hotkey(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn position_window_center(window: &tauri::WebviewWindow) -> Result<(), Box<dyn std::error::Error>> {
-    if let Ok(Some(monitor)) = window.current_monitor() {
-        let size = monitor.size();
-        let scale = monitor.scale_factor();
-        let window_size = window.outer_size()?;
-
-        let x = ((size.width as f64 / scale) as i32 - window_size.width as i32) / 2;
-        let y = ((size.height as f64 / scale) as i32 - window_size.height as i32) / 2;
-
-        window.set_position(tauri::Position::Physical(tauri::PhysicalPosition { x, y }))?;
-    }
-    Ok(())
-}
-
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
@@ -274,7 +284,6 @@ fn main() {
                 let _ = window.set_focus();
             }
         }))
-        .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             // Initialize services
             let settings = SettingsService::new()
@@ -289,7 +298,6 @@ fn main() {
                 db: Mutex::new(db),
                 settings: Mutex::new(settings),
                 gemini: AsyncMutex::new(gemini),
-                is_recording: Mutex::new(false),
             };
             app.manage(state);
 
@@ -299,11 +307,8 @@ fn main() {
             // Setup global shortcut
             setup_hotkey(app)?;
 
-            // Position window at center and show after a delay
+            // Show window after a short delay
             if let Some(window) = app.get_webview_window("main") {
-                let _ = position_window_center(&window);
-
-                // Show window after initialization
                 let window_clone = window.clone();
                 std::thread::spawn(move || {
                     std::thread::sleep(std::time::Duration::from_millis(500));
@@ -327,6 +332,8 @@ fn main() {
             test_api,
             is_first_launch,
             complete_setup,
+            delete_api_key,
+            toggle_favorite,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

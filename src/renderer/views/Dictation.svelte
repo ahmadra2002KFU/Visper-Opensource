@@ -69,9 +69,6 @@
       await stopRecording();
     } else if (recordingState === 'processing') {
       // Can't toggle while processing
-    } else if (transcript) {
-      // In result state - copy and clear
-      await copyAndClear();
     }
   }
 
