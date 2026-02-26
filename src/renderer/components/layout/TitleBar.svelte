@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getCurrentWindow } from '@tauri-apps/api/window';
+  import logoSrc from '../../logo.png';
 
   function minimize() {
     window.visperAPI.window.minimize();
@@ -20,7 +21,7 @@
 
 <div class="title-bar drag-region" onmousedown={startDrag}>
   <div class="logo">
-    <img src="/logo.png" alt="Visper" class="logo-img" />
+    <img src={logoSrc} alt="Visper" class="logo-img" />
     <span class="app-name">Visper</span>
   </div>
 
