@@ -48,7 +48,8 @@ export const visperAPI = {
       // Convert ArrayBuffer to number array for Tauri serialization
       const uint8Array = new Uint8Array(audioBuffer);
       return invoke<TranscriptionResult>('send_audio_data', {
-        audioBuffer: Array.from(uint8Array)
+        audioBuffer: Array.from(uint8Array),
+        mimeType: "audio/wav"
       });
     },
 
@@ -87,6 +88,10 @@ export const visperAPI = {
 
     clear: async (): Promise<void> => {
       return invoke<void>('history_clear');
+    },
+
+    toggleFavorite: async (id: number): Promise<boolean> => {
+      return invoke<boolean>('toggle_favorite', { id });
     }
   },
 
@@ -105,6 +110,10 @@ export const visperAPI = {
 
     setApiKey: async (key: string): Promise<SetApiKeyResult> => {
       return invoke<SetApiKeyResult>('set_api_key', { key });
+    },
+
+    deleteApiKey: async (): Promise<void> => {
+      return invoke<void>('delete_api_key');
     },
 
     testApi: async (key?: string): Promise<TestApiResult> => {

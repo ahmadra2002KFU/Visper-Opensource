@@ -23,8 +23,12 @@
   let transcript = $state('');
   let soundEnabled = $state(true);
 
+  let failedAudioData: string | null = null;
+  let retrying = $state(false);
+
   let recorder: AudioRecorder | null = null;
   let timerInterval: number | null = null;
+  let recordingStartTime: number | null = null;
   let unsubscribeHotkey: (() => void) | null = null;
 
   function clearTimer() {
@@ -32,6 +36,7 @@
       clearInterval(timerInterval);
       timerInterval = null;
     }
+    recordingStartTime = null;
   }
 
   onMount(async () => {
@@ -69,9 +74,6 @@
       await stopRecording();
     } else if (recordingState === 'processing') {
       // Can't toggle while processing
-    } else if (transcript) {
-      // In result state - copy and clear
-      await copyAndClear();
     }
   }
 
@@ -82,13 +84,18 @@
     if (started) {
       recordingState = 'recording';
       transcript = '';
+      failedAudioData = null;
       seconds = 0;
 
       if (soundEnabled) playSound('start');
 
       // Start timer
+      clearTimer();
+      seconds = 0;
+      recordingStartTime = Date.now();
+
       timerInterval = window.setInterval(() => {
-        seconds++;
+        seconds = Math.floor((Date.now() - recordingStartTime!) / 1000);
 
         // Warning at 2 minutes
         if (seconds === 120) {
@@ -99,7 +106,7 @@
         if (seconds >= 300) {
           stopRecording();
         }
-      }, 1000);
+      }, 250);
     } else {
       showToast('Could not access microphone', 'error');
     }
@@ -131,10 +138,14 @@
       const audioBuffer = await recorder.stop();
 
       if (audioBuffer) {
+        // Store audio data for potential retry
+        failedAudioData = audioBuffer;
+
         const result = await window.visperAPI.recording.sendAudioData(audioBuffer);
 
         if (result.success && result.text) {
           transcript = result.text;
+          failedAudioData = null; // Clear on success
 
           // Save to history
           await window.visperAPI.history.save(result.text, recordedSeconds);
@@ -171,6 +182,38 @@
       showToast('Copied to clipboard!', 'success');
     }
   }
+
+  async function retryTranscription() {
+    if (!failedAudioData || retrying) return;
+
+    retrying = true;
+    recordingState = 'processing';
+    transcript = '';
+
+    try {
+      const result = await window.visperAPI.recording.sendAudioData(failedAudioData);
+
+      if (result.success && result.text) {
+        transcript = result.text;
+        failedAudioData = null;
+
+        await window.visperAPI.history.save(result.text, seconds);
+        await window.visperAPI.clipboard.copy(result.text);
+
+        if (soundEnabled) playSound('success');
+        showToast('Copied to clipboard!', 'success');
+      } else {
+        showToast(result.error || 'Transcription failed', 'error');
+        if (soundEnabled) playSound('error');
+      }
+    } catch (error: any) {
+      showToast(error.message || 'Retry failed', 'error');
+      if (soundEnabled) playSound('error');
+    } finally {
+      recordingState = 'idle';
+      retrying = false;
+    }
+  }
 </script>
 
 <div class="dictation">
@@ -198,6 +241,16 @@
       onCopy={handleCopy}
       isLoading={recordingState === 'processing'}
     />
+
+    {#if failedAudioData && recordingState === 'idle' && !transcript}
+      <button class="retry-btn" onclick={retryTranscription} disabled={retrying}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+        Retry Transcription
+      </button>
+    {/if}
   </div>
 
   <NavBar currentView="dictation" {navigate} />
@@ -225,5 +278,30 @@
     align-items: center;
     gap: var(--spacing-xs);
     padding: var(--spacing-sm) 0;
+  }
+
+  .retry-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-md);
+    background: var(--color-accent);
+    color: white;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    transition: all var(--transition-fast);
+    align-self: center;
+    margin: 0 var(--spacing-sm);
+  }
+
+  .retry-btn:hover {
+    background: var(--color-accent-hover);
+  }
+
+  .retry-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 </style>

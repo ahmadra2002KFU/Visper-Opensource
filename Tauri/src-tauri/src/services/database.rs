@@ -196,6 +196,7 @@ impl DatabaseService {
 
     pub fn clear_history(&self) -> Result<()> {
         self.conn.execute("DELETE FROM transcriptions", [])?;
+        self.conn.execute("INSERT INTO transcriptions_fts(transcriptions_fts) VALUES('rebuild')", [])?;
         Ok(())
     }
 

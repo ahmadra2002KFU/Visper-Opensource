@@ -9,7 +9,7 @@
   // Use 24 bars for visualization
   const barCount = 24;
 
-  const bars = $derived(() => {
+  const bars = $derived.by(() => {
     if (!isActive || data.length === 0) {
       return Array(barCount).fill(0.1);
     }
@@ -26,7 +26,7 @@
 </script>
 
 <div class="waveform" class:active={isActive}>
-  {#each bars() as height, i}
+  {#each bars as height, i}
     <div
       class="bar"
       style="height: {height * 100}%; animation-delay: {i * 30}ms"

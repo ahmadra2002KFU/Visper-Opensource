@@ -24,7 +24,6 @@
     "global-shortcut:allow-is-registered",
     "clipboard-manager:default",
     "clipboard-manager:allow-write-text",
-    "clipboard-manager:allow-read-text",
-    "shell:default"
+    "clipboard-manager:allow-read-text"
   ]
 }

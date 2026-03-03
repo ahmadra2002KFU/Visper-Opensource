@@ -21,18 +21,29 @@
       currentView = 'welcome';
     }
 
-    // Listen for navigation events from main process
-    // This would be set up via IPC in a real implementation
+    // Apply saved theme
+    const settings = await window.visperAPI.settings.get();
+    const savedTheme = settings.theme || 'light';
+    if (savedTheme === 'system') {
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    } else {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    }
   });
 
   function navigate(view: View) {
     currentView = view;
   }
 
-  function completeSetup() {
-    window.visperAPI.app.completeSetup();
-    isFirstLaunch = false;
-    currentView = 'dictation';
+  async function completeSetup() {
+    try {
+      await window.visperAPI.app.completeSetup();
+      isFirstLaunch = false;
+      currentView = 'dictation';
+    } catch (error) {
+      console.error('Failed to complete setup:', error);
+    }
   }
 
   function showToast(message: string, type: 'success' | 'error' | 'info' = 'info') {
@@ -56,12 +67,15 @@
   <main class="content">
     {#if currentView === 'welcome'}
       <Welcome onComplete={completeSetup} />
-    {:else if currentView === 'dictation'}
-      <Dictation {navigate} {showToast} />
-    {:else if currentView === 'history'}
-      <History {navigate} {showToast} />
-    {:else if currentView === 'settings'}
-      <Settings {navigate} {showToast} />
+    {:else}
+      <div class="view-container" style:display={currentView === 'dictation' ? 'flex' : 'none'}>
+        <Dictation {navigate} {showToast} />
+      </div>
+      {#if currentView === 'history'}
+        <History {navigate} {showToast} />
+      {:else if currentView === 'settings'}
+        <Settings {navigate} {showToast} />
+      {/if}
     {/if}
   </main>
 
@@ -86,6 +100,12 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+  }
+
+  .view-container {
+    flex: 1;
+    flex-direction: column;
+    height: 100%;
   }
 
   .toast-container {

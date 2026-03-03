@@ -12,7 +12,7 @@ const TRANSCRIPTION_PROMPT: &str = r#"You are a precise audio transcription assi
 
 Transcribe the audio now:"#;
 
-const GEMINI_MODEL: &str = "gemini-3.0-flash";
+const GEMINI_MODEL: &str = "gemini-2.5-flash";
 
 #[derive(Debug, Serialize)]
 struct GeminiRequest {
@@ -103,7 +103,13 @@ impl GeminiService {
             .timeout(std::time::Duration::from_secs(60))
             .build()?;
 
-        let api_key = settings.get_api_key().ok().flatten();
+        let api_key = match settings.get_api_key() {
+            Ok(key) => key,
+            Err(e) => {
+                eprintln!("[Visper] Failed to read API key from keyring: {}", e);
+                None
+            }
+        };
 
         Ok(Self {
             client,
@@ -111,12 +117,8 @@ impl GeminiService {
         })
     }
 
-    fn get_active_key(&self) -> Option<&String> {
-        self.api_key.as_ref()
-    }
-
-    pub async fn transcribe(&self, audio_buffer: &[u8]) -> Result<TranscriptionResult> {
-        let api_key = match self.get_active_key() {
+    pub async fn transcribe(&self, audio_buffer: &[u8], mime_type: &str) -> Result<TranscriptionResult> {
+        let api_key = match self.api_key.as_ref() {
             Some(key) => key,
             None => return Ok(TranscriptionResult {
                 success: false,
@@ -132,7 +134,7 @@ impl GeminiService {
                 parts: vec![
                     Part::InlineData {
                         inline_data: InlineData {
-                            mime_type: "audio/wav".to_string(),
+                            mime_type: mime_type.to_string(),
                             data: base64_audio,
                         },
                     },
@@ -210,11 +212,25 @@ impl GeminiService {
             });
         }
 
-        let text = gemini_response.candidates
-            .and_then(|c| c.into_iter().next())
-            .and_then(|c| c.content.parts.into_iter().next())
-            .map(|p| p.text.trim().to_string())
-            .unwrap_or_else(|| "[inaudible]".to_string());
+        let text = match gemini_response.candidates {
+            Some(candidates) if !candidates.is_empty() => {
+                candidates.into_iter().next()
+                    .and_then(|c| c.content.parts.into_iter().next())
+                    .map(|p| p.text.trim().to_string())
+                    .unwrap_or_else(|| {
+                        eprintln!("[Visper] Gemini returned candidates but no text parts. Raw response: {}", response_text);
+                        "[inaudible]".to_string()
+                    })
+            }
+            _ => {
+                eprintln!("[Visper] Gemini returned no candidates. Raw response: {}", response_text);
+                return Ok(TranscriptionResult {
+                    success: false,
+                    text: None,
+                    error: Some("Transcription failed: Gemini returned no results. Check audio quality or try again.".to_string()),
+                });
+            }
+        };
 
         // If the result is empty or just whitespace, return [inaudible]
         let text = if text.is_empty() || text.chars().all(char::is_whitespace) {
@@ -231,7 +247,7 @@ impl GeminiService {
     }
 
     pub async fn test_connection(&self, key: Option<&str>) -> Result<TestApiResult> {
-        let api_key = key.or(self.get_active_key().map(|s| s.as_str()));
+        let api_key = key.or(self.api_key.as_deref());
 
         let api_key = match api_key {
             Some(k) => k,
@@ -276,14 +292,19 @@ impl GeminiService {
             }
         };
 
-        if response.status().is_success() {
+        let status = response.status();
+        if status.is_success() {
             Ok(TestApiResult { success: true, error: None })
         } else {
             let error_text = response.text().await.unwrap_or_default();
             let error_msg = if error_text.contains("API key invalid") || error_text.contains("API_KEY_INVALID") {
-                "Invalid API key".to_string()
+                "Invalid API key. Please check your Gemini API key in Settings.".to_string()
+            } else if error_text.contains("quota") || error_text.contains("RESOURCE_EXHAUSTED") {
+                "API quota exceeded. Please try again later.".to_string()
+            } else if error_text.contains("rate limit") || error_text.contains("RATE_LIMIT") {
+                "Rate limit reached. Please wait a moment and try again.".to_string()
             } else {
-                "API validation failed".to_string()
+                format!("API error ({}): {}", status.as_u16(), error_text)
             };
             Ok(TestApiResult {
                 success: false,

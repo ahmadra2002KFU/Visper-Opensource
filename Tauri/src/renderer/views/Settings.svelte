@@ -144,6 +144,23 @@
           </button>
         </div>
       </div>
+      {#if hasCustomKey}
+        <button
+          class="btn danger remove-key-btn"
+          onclick={async () => {
+            try {
+              await window.visperAPI.settings.deleteApiKey();
+              apiKey = '';
+              hasCustomKey = false;
+              showToast('API key removed', 'success');
+            } catch (error) {
+              showToast('Failed to remove API key', 'error');
+            }
+          }}
+        >
+          Remove API Key
+        </button>
+      {/if}
     </section>
 
     <!-- Theme Section -->
@@ -346,6 +363,10 @@
   .btn.danger {
     background: var(--color-error);
     color: white;
+  }
+
+  .remove-key-btn {
+    margin-top: var(--spacing-sm);
   }
 
   .btn:disabled {

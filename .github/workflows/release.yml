@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: Tauri/src-tauri
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: Tauri
+
+      - name: Build Tauri app
+        run: npx tauri build
+        working-directory: Tauri
+
+      - name: Upload artifacts to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: |
+            Tauri/src-tauri/target/release/bundle/nsis/*.exe
+            Tauri/src-tauri/target/release/bundle/msi/*.msi
