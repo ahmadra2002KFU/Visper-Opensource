@@ -67,12 +67,15 @@
   <main class="content">
     {#if currentView === 'welcome'}
       <Welcome onComplete={completeSetup} />
-    {:else if currentView === 'dictation'}
-      <Dictation {navigate} {showToast} />
-    {:else if currentView === 'history'}
-      <History {navigate} {showToast} />
-    {:else if currentView === 'settings'}
-      <Settings {navigate} {showToast} />
+    {:else}
+      <div class="view-container" style:display={currentView === 'dictation' ? 'flex' : 'none'}>
+        <Dictation {navigate} {showToast} />
+      </div>
+      {#if currentView === 'history'}
+        <History {navigate} {showToast} />
+      {:else if currentView === 'settings'}
+        <Settings {navigate} {showToast} />
+      {/if}
     {/if}
   </main>
 
@@ -97,6 +100,12 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+  }
+
+  .view-container {
+    flex: 1;
+    flex-direction: column;
+    height: 100%;
   }
 
   .toast-container {

@@ -42,14 +42,35 @@ impl SettingsService {
             fs::create_dir_all(parent)?;
         }
 
-        let settings = if config_path.exists() {
+        let mut settings: Settings = if config_path.exists() {
             let content = fs::read_to_string(&config_path)?;
             serde_json::from_str(&content).unwrap_or_default()
         } else {
             Settings::default()
         };
 
-        Ok(Self { settings, config_path })
+        // Recovery: if firstLaunchComplete is false but API key exists,
+        // the user already completed setup before (settings.json was likely deleted/corrupted)
+        if !settings.first_launch_complete && Self::check_api_key_exists() {
+            eprintln!("[Visper] Settings recovery: API key found in keyring but firstLaunchComplete=false. Auto-recovering.");
+            settings.first_launch_complete = true;
+        }
+
+        let service = Self { settings, config_path };
+        service.save()?;
+
+        Ok(service)
+    }
+
+    /// Check if an API key exists in the system keyring without returning the value
+    fn check_api_key_exists() -> bool {
+        match Entry::new(SERVICE_NAME, KEYRING_USER) {
+            Ok(entry) => entry.get_password().is_ok(),
+            Err(e) => {
+                eprintln!("[Visper] Keyring access error during startup check: {}", e);
+                false
+            }
+        }
     }
 
     fn get_config_path() -> Result<PathBuf> {
@@ -138,9 +159,10 @@ impl SettingsService {
     }
 
     pub fn reset(&mut self) -> Result<()> {
+        // Reset settings to defaults but do NOT clear the API key.
+        // API key should only be deleted via explicit user action (clear_api_key).
         self.settings = Settings::default();
         self.save()?;
-        self.clear_api_key()?;
         Ok(())
     }
 }

@@ -103,7 +103,13 @@ impl GeminiService {
             .timeout(std::time::Duration::from_secs(60))
             .build()?;
 
-        let api_key = settings.get_api_key().ok().flatten();
+        let api_key = match settings.get_api_key() {
+            Ok(key) => key,
+            Err(e) => {
+                eprintln!("[Visper] Failed to read API key from keyring: {}", e);
+                None
+            }
+        };
 
         Ok(Self {
             client,
@@ -206,11 +212,25 @@ impl GeminiService {
             });
         }
 
-        let text = gemini_response.candidates
-            .and_then(|c| c.into_iter().next())
-            .and_then(|c| c.content.parts.into_iter().next())
-            .map(|p| p.text.trim().to_string())
-            .unwrap_or_else(|| "[inaudible]".to_string());
+        let text = match gemini_response.candidates {
+            Some(candidates) if !candidates.is_empty() => {
+                candidates.into_iter().next()
+                    .and_then(|c| c.content.parts.into_iter().next())
+                    .map(|p| p.text.trim().to_string())
+                    .unwrap_or_else(|| {
+                        eprintln!("[Visper] Gemini returned candidates but no text parts. Raw response: {}", response_text);
+                        "[inaudible]".to_string()
+                    })
+            }
+            _ => {
+                eprintln!("[Visper] Gemini returned no candidates. Raw response: {}", response_text);
+                return Ok(TranscriptionResult {
+                    success: false,
+                    text: None,
+                    error: Some("Transcription failed: Gemini returned no results. Check audio quality or try again.".to_string()),
+                });
+            }
+        };
 
         // If the result is empty or just whitespace, return [inaudible]
         let text = if text.is_empty() || text.chars().all(char::is_whitespace) {
