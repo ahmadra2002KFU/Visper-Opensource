@@ -248,7 +248,7 @@
 
     <!-- About -->
     <section class="section about">
-      <p class="version">Visper v1.0.0</p>
+      <p class="version">Visper v1.2.0</p>
       <p class="copyright">Powered by Gemini</p>
       <p class="open-source">Open Source</p>
       <div class="built-by">

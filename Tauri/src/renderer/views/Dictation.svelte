@@ -23,7 +23,7 @@
   let transcript = $state('');
   let soundEnabled = $state(true);
 
-  let failedAudioData: string | null = null;
+  let failedAudioData: string | null = $state(null);
   let retrying = $state(false);
 
   let recorder: AudioRecorder | null = null;
